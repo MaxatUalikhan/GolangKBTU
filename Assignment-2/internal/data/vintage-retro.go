@@ -9,7 +9,7 @@ type VintageRetro struct {
 	CreatedAt time.Time `json:"-"`
 	Name      string    `json:"name"`
 	Year      int32     `json:"year,omitempty"`
-	Cost      int32     `json:"cost,omitempty"`
+	Cost      Cost      `json:"cost,omitempty"`
 	Type      string    `json:"type,omitempty"`
 	Version   int32     `json:"version"`
 }
