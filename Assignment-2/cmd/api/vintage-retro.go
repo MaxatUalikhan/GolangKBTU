@@ -2,6 +2,7 @@ package main
 
 import (
 	"assignment2.ualikhan.net/internal/data"
+	"assignment2.ualikhan.net/internal/validator"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,10 +10,10 @@ import (
 
 func (app *application) createVintageRetroHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Name string `json:"name"`
-		Year int32  `json:"year"`
-		Cost int32  `json:"cost"`
-		Type string `json:"type"`
+		Name string    `json:"name"`
+		Year int32     `json:"year"`
+		Cost data.Cost `json:"cost"`
+		Type string    `json:"type"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -20,8 +21,21 @@ func (app *application) createVintageRetroHandler(w http.ResponseWriter, r *http
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", input)
 
+	vintageretro := &data.VintageRetro{
+		Name: input.Name,
+		Year: input.Year,
+		Cost: input.Cost,
+		Type: input.Type,
+	}
+
+	v := validator.New()
+
+	if data.ValidateVintageRetro(v, vintageretro); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	fmt.Fprintf(w, "%+v\n", input)
 }
 
 func (app *application) showVintageRetroHandler(w http.ResponseWriter, r *http.Request) {
