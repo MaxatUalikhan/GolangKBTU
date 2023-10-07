@@ -8,7 +8,20 @@ import (
 )
 
 func (app *application) createVintageRetroHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "create a new vintage-retro item")
+	var input struct {
+		Name string `json:"name"`
+		Year int32  `json:"year"`
+		Cost int32  `json:"cost"`
+		Type string `json:"type"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	fmt.Fprintf(w, "%+v\n", input)
+
 }
 
 func (app *application) showVintageRetroHandler(w http.ResponseWriter, r *http.Request) {
