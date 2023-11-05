@@ -94,10 +94,10 @@ func (app *application) updateClassicCarsHandler(w http.ResponseWriter, r *http.
 	}
 
 	var input struct {
-		Name        string    `json:"name"`
-		Year        int32     `json:"year"`
-		Cost        data.Cost `json:"cost"`
-		Description string    `json:"description"`
+		Name        *string    `json:"name"`
+		Year        *int32     `json:"year"`
+		Cost        *data.Cost `json:"cost"`
+		Description *string    `json:"description"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -106,10 +106,18 @@ func (app *application) updateClassicCarsHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	classiccars.Name = input.Name
-	classiccars.Year = input.Year
-	classiccars.Cost = input.Cost
-	classiccars.Description = input.Description
+	if input.Name != nil {
+		classiccars.Name = *input.Name
+	}
+	if input.Year != nil {
+		classiccars.Year = *input.Year
+	}
+	if input.Cost != nil {
+		classiccars.Cost = *input.Cost
+	}
+	if input.Description != nil {
+		classiccars.Description = *input.Description
+	}
 
 	v := validator.New()
 	if data.ValidateClassicCars(v, classiccars); !v.Valid() {
@@ -119,10 +127,15 @@ func (app *application) updateClassicCarsHandler(w http.ResponseWriter, r *http.
 
 	err = app.models.ClassicCars.Update(classiccars)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
-
+	
 	err = app.writeJSON(w, http.StatusOK, envelope{"classiccars": classiccars}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

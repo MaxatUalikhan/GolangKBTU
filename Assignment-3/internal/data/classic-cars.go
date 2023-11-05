@@ -2,6 +2,7 @@ package data
 
 import (
 	"assignment3.ualikhan.net/internal/validator"
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -38,8 +39,10 @@ func (m ClassicCarsModel) Insert(classiccars *ClassicCars) error {
 
 	args := []interface{}{classiccars.Name, classiccars.Year, classiccars.Cost, classiccars.Description}
 
-	return m.DB.QueryRow(query, args...).Scan(&classiccars.ID, &classiccars.CreatedAt, &classiccars.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
+	return m.DB.QueryRowContext(ctx, query, args...).Scan(&classiccars.ID, &classiccars.CreatedAt, &classiccars.Version)
 }
 
 func (m ClassicCarsModel) Get(id int64) (*ClassicCars, error) {
@@ -54,7 +57,11 @@ func (m ClassicCarsModel) Get(id int64) (*ClassicCars, error) {
 
 	var classiccars ClassicCars
 
-	err := m.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&classiccars.ID,
 		&classiccars.CreatedAt,
 		&classiccars.Name,
@@ -80,7 +87,7 @@ func (m ClassicCarsModel) Update(classiccars *ClassicCars) error {
 	query := `
 		UPDATE classic_cars
 		SET name = $1, year = $2, cost = $3, description = $4, version = version + 1
-		WHERE id = $5
+		WHERE id = $5 AND version = $6
 		RETURNING version`
 
 	args := []interface{}{
@@ -89,10 +96,22 @@ func (m ClassicCarsModel) Update(classiccars *ClassicCars) error {
 		classiccars.Cost,
 		classiccars.Description,
 		classiccars.ID,
+		classiccars.Version,
 	}
 
-	return m.DB.QueryRow(query, args...).Scan(&classiccars.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
+	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&classiccars.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+	return nil
 }
 
 func (m ClassicCarsModel) Delete(id int64) error {
@@ -104,7 +123,10 @@ func (m ClassicCarsModel) Delete(id int64) error {
 		DELETE FROM classic_cars
 		WHERE id = $1`
 
-	result, err := m.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
