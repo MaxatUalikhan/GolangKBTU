@@ -178,7 +178,6 @@ func (app *application) listClassicCarsHandler(w http.ResponseWriter, r *http.Re
 	qs := r.URL.Query()
 
 	input.Name = app.readString(qs, "name", "")
-	input.Description = app.readString(qs, "description", "")
 
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
@@ -191,13 +190,13 @@ func (app *application) listClassicCarsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	classiccars, err := app.models.ClassicCars.GetAll(input.Name, input.Description, input.Filters)
+	classiccars, metadata, err := app.models.ClassicCars.GetAll(input.Name, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	err = app.writeJSON(w, http.StatusOK, envelope{"classiccars": classiccars}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"movies": classiccars, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

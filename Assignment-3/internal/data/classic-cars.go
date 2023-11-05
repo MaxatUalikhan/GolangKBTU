@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -143,28 +144,34 @@ func (m ClassicCarsModel) Delete(id int64) error {
 	return nil
 }
 
-func (m ClassicCarsModel) GetAll(name string, description string, filters Filters) ([]*ClassicCars, error) {
-	query := `
-		SELECT id, created_at, name, year, cost, description, version
+func (m ClassicCarsModel) GetAll(name string, filters Filters) ([]*ClassicCars, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT  count(*) OVER(), id, created_at, name, year, cost, description, version
 		FROM classic_cars
-		ORDER BY id`
+		WHERE (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, query)
+	args := []interface{}{name, filters.limit(), filters.offset()}
+
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
 
+	totalRecords := 0
 	classiccars := []*ClassicCars{}
 
 	for rows.Next() {
 		var classiccar ClassicCars
 
 		err := rows.Scan(
+			&totalRecords,
 			&classiccar.ID,
 			&classiccar.CreatedAt,
 			&classiccar.Name,
@@ -174,14 +181,18 @@ func (m ClassicCarsModel) GetAll(name string, description string, filters Filter
 			&classiccar.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
+
 		classiccars = append(classiccars, &classiccar)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	// If everything went OK, then return the slice of movies.
-	return classiccars, nil
+
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return classiccars, metadata, nil
+
 }
