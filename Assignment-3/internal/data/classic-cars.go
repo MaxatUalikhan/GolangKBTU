@@ -142,3 +142,46 @@ func (m ClassicCarsModel) Delete(id int64) error {
 
 	return nil
 }
+
+func (m ClassicCarsModel) GetAll(name string, description string, filters Filters) ([]*ClassicCars, error) {
+	query := `
+		SELECT id, created_at, name, year, cost, description, version
+		FROM classic_cars
+		ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	classiccars := []*ClassicCars{}
+
+	for rows.Next() {
+		var classiccar ClassicCars
+
+		err := rows.Scan(
+			&classiccar.ID,
+			&classiccar.CreatedAt,
+			&classiccar.Name,
+			&classiccar.Year,
+			&classiccar.Cost,
+			&classiccar.Description,
+			&classiccar.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		classiccars = append(classiccars, &classiccar)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	// If everything went OK, then return the slice of movies.
+	return classiccars, nil
+}

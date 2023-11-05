@@ -135,7 +135,7 @@ func (app *application) updateClassicCarsHandler(w http.ResponseWriter, r *http.
 		}
 		return
 	}
-	
+
 	err = app.writeJSON(w, http.StatusOK, envelope{"classiccars": classiccars}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -164,4 +164,42 @@ func (app *application) deleteClassicCarsHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+func (app *application) listClassicCarsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name        string
+		Description string
+		data.Filters
+	}
+
+	v := validator.New()
+
+	qs := r.URL.Query()
+
+	input.Name = app.readString(qs, "name", "")
+	input.Description = app.readString(qs, "description", "")
+
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+
+	input.Filters.SortSafelist = []string{"id", "name", "year", "cost", "-id", "-name", "-year", "-cost"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	classiccars, err := app.models.ClassicCars.GetAll(input.Name, input.Description, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"classiccars": classiccars}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }
