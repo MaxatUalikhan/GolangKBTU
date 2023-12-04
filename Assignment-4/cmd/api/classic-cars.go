@@ -1,8 +1,8 @@
 package main
 
 import (
-	"assignment3.ualikhan.net/internal/data"
-	"assignment3.ualikhan.net/internal/validator"
+	"assignment4.ualikhan.net/internal/data"
+	"assignment4.ualikhan.net/internal/validator"
 	"errors"
 	"fmt"
 	"net/http"

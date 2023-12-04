@@ -1,4 +1,4 @@
-module assignment3.ualikhan.net
+module assignment4.ualikhan.net
 
 go 1.21.1
 
