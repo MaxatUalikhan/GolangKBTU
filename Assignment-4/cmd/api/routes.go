@@ -13,11 +13,11 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
-	router.HandlerFunc(http.MethodGet, "/v1/classic-cars", app.listClassicCarsHandler)
-	router.HandlerFunc(http.MethodPost, "/v1/classic-cars", app.createClassicCarsHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/classic-cars/:id", app.showClassicCarsHandler)
-	router.HandlerFunc(http.MethodPatch, "/v1/classic-cars/:id", app.updateClassicCarsHandler)
-	router.HandlerFunc(http.MethodDelete, "/v1/classic-cars/:id", app.deleteClassicCarsHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/classic-cars", app.requirePermission("classic_cars:read", app.listClassicCarsHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/classic-cars", app.requirePermission("classic_cars:write", app.createClassicCarsHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/classic-cars/:id", app.requirePermission("classic_cars:read", app.showClassicCarsHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/classic-cars/:id", app.requirePermission("classic_cars:write", app.updateClassicCarsHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/classic-cars/:id", app.requirePermission("classic_cars:write", app.deleteClassicCarsHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
